@@ -6,6 +6,7 @@ import (
     "io/ioutil"
     "log"
     "net/http"
+    "net/url"
     "os"
 
     "github.com/gin-gonic/gin"
@@ -16,16 +17,44 @@ type Card struct {
     Name string `json:"name"`
 }
 
+type Action struct {
+    Name       string `json:"name"`
+    Text       string `json:"text"`
+    ActionType string `json:"type"`
+    Value      string `json:"value"`
+}
+
+type Attachment struct {
+    Text           string   `json:"text"`
+    Fallback       string   `json:"fallback"`
+    CallbackID     string   `json:"callback_id"`
+    Color          string   `json:"color"`
+    AttachmentType string   `json:"attachment_type"`
+    Actions        []Action `json:"actions"`
+}
+
 type SlackResponse struct {
+    Attachments []Attachment `json:"attachments"`
     ResponseType string `json:"response_type"`
     Text string `json:"text"`
 }
 
 func fuzzy(text string) string {
-    urlBase := "https://api.scryfall.com/cards/named?fuzzy=%s"
+    req, err := http.NewRequest("GET", "https://api.scryfall.com/cards/named", nil)
+    if err != nil {
+        log.Print(err)
+        os.Exit(1)
+    }
 
-    url := fmt.Sprintf(urlBase, text)
-    resp, err := http.Get(url)
+    q := url.Values{}
+    q.Add("fuzzy", text)
+
+    req.URL.RawQuery = q.Encode()
+
+    log.Printf("Scryfall url: %s", req.URL.String())
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
     if(err != nil) {
         // Sure, sure. Error handling. Of course.
     }
@@ -33,7 +62,7 @@ func fuzzy(text string) string {
     defer resp.Body.Close()
     body, err := ioutil.ReadAll(resp.Body)
 
-    var card Card
+    card := Card{}
     err = json.Unmarshal(body, &card)
 
     log.Printf("Card name: %s", card.Name)
@@ -65,34 +94,50 @@ func slackCallback(c *gin.Context) {
     &response_url=https://hooks.slack.com/commands/1234/5678
     &trigger_id=13345224609.738474920.8088930838d88f008e0
     */
-    user := c.PostForm("user_name")
-    text := c.PostForm("text")
-    base := "%s is looking for '%s'...we think he meant '%s'?"
 
+    text := c.PostForm("text")
     log.Printf("Text: %s", text)
 
+    base := "Were you looking for '%s'?"
     cardName := fuzzy(text)
-    resp := fmt.Sprintf(base, user, text, cardName)
+    resp := fmt.Sprintf(base, cardName)
 
-    /*
-    {
-        "response_type": "in_channel",
-        "text": "It's 80 degrees right now.",
-        "attachments": [
-            {
-                "text":"Partly cloudy today and tomorrow"
-            }
-        ]
+    action1 := Action {
+        Name: "card",
+        Text: "Card One",
+        ActionType: "button",
+        Value: "cardOne",
     }
-    */
 
-    var slack SlackResponse
-    slack.ResponseType = "in_channel"; // or ephemeral
-    slack.Text = resp
+    action2 := Action {
+        Name: "card",
+        Text: "Card Two",
+        ActionType: "button",
+        Value: "cardTwo",
+    }
+
+    attach := Attachment {
+        Text: "Attachment Text",
+        Fallback: "Attachment Fallback",
+        CallbackID: "choose_card",
+        Color: "#acacac",
+        AttachmentType: "default",
+        Actions: []Action {},
+    }
+
+    attach.Actions = append(attach.Actions, action1, action2)
+
+    slack := SlackResponse {
+        ResponseType: "ephemeral", //in_channel or ephemeral
+        Text: resp,
+        Attachments: []Attachment {},
+    }
+
+    slack.Attachments = append(slack.Attachments, attach)
 
     c.JSON(http.StatusOK, slack)
 }
-
+    
 func main() {
     port := os.Getenv("PORT")
 
