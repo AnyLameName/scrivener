@@ -16,6 +16,11 @@ type Card struct {
     Name string `json:"name"`
 }
 
+type SlackResponse struct {
+    ResponseType string `json:"response_type"`
+    Text string `json:"text"`
+}
+
 func fuzzy(text string) string {
     urlBase := "https://api.scryfall.com/cards/named?fuzzy=%s"
 
@@ -62,12 +67,28 @@ func slackCallback(c *gin.Context) {
     */
     user := c.PostForm("user_name")
     text := c.PostForm("text")
-    base := "Alright, %s, let's see what I can find for '%s'... did you mean '%s'?"
+    base := "%s is looking for '%s'...we think he meant '%s'?"
 
     cardName := fuzzy(text)
     resp := fmt.Sprintf(base, user, text, cardName)
 
-    c.String(http.StatusOK, resp)
+    /*
+    {
+        "response_type": "in_channel",
+        "text": "It's 80 degrees right now.",
+        "attachments": [
+            {
+                "text":"Partly cloudy today and tomorrow"
+            }
+        ]
+    }
+    */
+
+    var slack SlackResponse
+    slack.ResponseType = "in_channel"; // or ephemeral
+    slack.Text = resp
+
+    c.JSON(http.StatusOK, slack)
 }
 
 func main() {
