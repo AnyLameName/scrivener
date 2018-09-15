@@ -1,0 +1,11 @@
+{
+  "name": "Scrivener API",
+  "description": "Enhancement layer over Scryfall API",
+  "keywords": [
+    "go",
+    "mtg",
+    "scryfall"
+  ],
+  "website": "https://github.com/AnyLameName/scrivener",
+  "repository": "https://github.com/AnyLameName/scrivener"
+}
