@@ -9,6 +9,7 @@ import (
     "net/url"
     "os"
 
+    scryfall "github.com/heroku/scrivener/scryfall"
     "github.com/gin-gonic/gin"
     _ "github.com/heroku/x/hmetrics/onload"
 )
@@ -103,6 +104,7 @@ func slackCallback(c *gin.Context) {
     cardName := fuzzy(text)
     resp := fmt.Sprintf(base, cardName)
     */
+    scryfall.FuzzySearch("dog")
 
     action1 := Action {
         Name: "card",
