@@ -16,10 +16,10 @@ type Card struct {
     Name string `json:"name"`
 }
 
-func cardCallback(c *gin.Context) {
+func fuzzy(text string) string {
     urlBase := "https://api.scryfall.com/cards/named?fuzzy=%s"
-    cardName := c.Param("name");
-    url := fmt.Sprintf(urlBase, cardName)
+
+    url := fmt.Sprintf(urlBase, text)
     resp, err := http.Get(url)
     if(err != nil) {
         // Sure, sure. Error handling. Of course.
@@ -33,7 +33,15 @@ func cardCallback(c *gin.Context) {
 
     log.Printf("Card name: %s", card.Name)
 
-    c.String(http.StatusOK, fmt.Sprintf("Card Name: %s", card.Name));
+    return card.Name
+}
+
+func cardCallback(c *gin.Context) {
+    text := c.Param("text");
+
+    result := fuzzy(text)
+
+    c.String(http.StatusOK, fmt.Sprintf("Card Name: %s", result));
 }
 
 func slackCallback(c *gin.Context) {
@@ -53,7 +61,13 @@ func slackCallback(c *gin.Context) {
     &trigger_id=13345224609.738474920.8088930838d88f008e0
     */
     user := c.PostForm("user_name")
-    c.String(http.StatusOK, fmt.Sprintf("Oh hi there, %s.", user))
+    text := c.PostForm("text")
+    base := "Alright, %s, let's see what I can find for '%s'... did mean '%s'?"
+
+    cardName := fuzzy(text)
+    resp := fmt.Sprintf(base, user, text, cardName)
+
+    c.String(http.StatusOK, resp)
 }
 
 func main() {
@@ -70,7 +84,7 @@ func main() {
         c.String(http.StatusOK, "You should try making an actual request.")
     })
 
-    router.GET("/card/:name", cardCallback);
+    router.GET("/card/:text", cardCallback);
     router.POST("/card/", slackCallback)
 
     router.Run(":" + port)
