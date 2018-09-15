@@ -139,6 +139,15 @@ func slackCallback(c *gin.Context) {
 
     c.JSON(http.StatusOK, slack)
 }
+
+func buttonCallback(c *gin.Context) {
+    resp := SlackResponse {
+        ResponseType: "ephemeral",
+        Text: "Thanks for clicking that button!",
+    }
+
+    c.JSON(http.StatusOK, resp)
+}
     
 func main() {
     port := os.Getenv("PORT")
@@ -154,8 +163,9 @@ func main() {
         c.String(http.StatusOK, "You should try making an actual request.")
     })
 
-    router.GET("/card/:text", cardCallback);
+    router.GET("/card/:text", cardCallback)
     router.POST("/card/", slackCallback)
+    router.POST("/button/", buttonCallback)
 
     router.Run(":" + port)
 }
