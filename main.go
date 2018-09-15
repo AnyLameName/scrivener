@@ -95,30 +95,32 @@ func slackCallback(c *gin.Context) {
     &trigger_id=13345224609.738474920.8088930838d88f008e0
     */
 
+    /*
     text := c.PostForm("text")
     log.Printf("Text: %s", text)
 
     base := "Were you looking for '%s'?"
     cardName := fuzzy(text)
     resp := fmt.Sprintf(base, cardName)
+    */
 
     action1 := Action {
         Name: "card",
-        Text: "Card One",
+        Text: "Chandra, the Cool One",
         ActionType: "button",
         Value: "cardOne",
     }
 
     action2 := Action {
         Name: "card",
-        Text: "Card Two",
+        Text: "Chandra, the Lame One",
         ActionType: "button",
         Value: "cardTwo",
     }
 
     attach := Attachment {
-        Text: "Attachment Text",
-        Fallback: "Attachment Fallback",
+        Text: "Please choose one.",
+        Fallback: "Please choose one.",
         CallbackID: "choose_card",
         Color: "#acacac",
         AttachmentType: "default",
@@ -129,7 +131,7 @@ func slackCallback(c *gin.Context) {
 
     slack := SlackResponse {
         ResponseType: "ephemeral", //in_channel or ephemeral
-        Text: resp,
+        Text: "I found multiple results for 'Chandra'.",
         Attachments: []Attachment {},
     }
 
