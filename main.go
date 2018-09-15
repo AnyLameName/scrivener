@@ -36,6 +36,10 @@ func cardCallback(c *gin.Context) {
     c.String(http.StatusOK, fmt.Sprintf("Card Name: %s", card.Name));
 }
 
+func slackCallback(c *gin.Context) {
+    c.String(http.StatusOK, "Oh hi there.")
+}
+
 func main() {
     port := os.Getenv("PORT")
 
@@ -51,6 +55,7 @@ func main() {
     })
 
     router.GET("/card/:name", cardCallback);
+    router.POST("/card/", slackCallback)
 
     router.Run(":" + port)
 }
