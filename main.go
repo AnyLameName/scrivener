@@ -62,7 +62,7 @@ func slackCallback(c *gin.Context) {
     */
     user := c.PostForm("user_name")
     text := c.PostForm("text")
-    base := "Alright, %s, let's see what I can find for '%s'... did mean '%s'?"
+    base := "Alright, %s, let's see what I can find for '%s'... did you mean '%s'?"
 
     cardName := fuzzy(text)
     resp := fmt.Sprintf(base, user, text, cardName)
