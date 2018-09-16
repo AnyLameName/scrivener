@@ -66,6 +66,7 @@ func buttonCallback(c *gin.Context) {
         c.JSON(http.StatusOK, errorResponse)
         return
     }
+    log.Printf("Body parsed: %s", body)
 
     callback := slack.Callback{}
     err = json.Unmarshal(body, &callback)
