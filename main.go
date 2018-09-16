@@ -61,7 +61,6 @@ func buttonCallback(c *gin.Context) {
     }
 
     payload := c.PostForm("payload")
-    log.Printf("Payload retrieved: %s", payload)
 
     callback := slack.Callback{}
     json.Unmarshal([]byte(payload), &callback)
