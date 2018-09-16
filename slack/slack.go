@@ -1,8 +1,6 @@
 package slack
 
 import (
-    "fmt"
-    "strings"
     scryfall "github.com/heroku/scrivener/scryfall"
 )
 
@@ -67,15 +65,28 @@ type cardChoice struct {
 }
 
 func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
-    var text strings.Builder
-    text.WriteString(fmt.Sprintf("Searching for '%s' returned multiple results:", searchString))
+    buttons := []Action{}
     for _, card := range cardList {
-        text.WriteString(fmt.Sprintf("\n%s", card.Name))
+        buttons = append(buttons, Action{
+            Name: "card",
+            Text: card.Name,
+            ActionType: "button",
+            Value: card.Name,
+        })
     }
-    text.WriteString("\n")
+
+    attachments := []Attachment{}
+    attachments = append(attachments, Attachment{
+        Text: "Please choose one.",
+        Fallback: "Please choose one.",
+        CallbackID: "choose_card",
+        Color: "acacac",
+        AttachmentType: "default",
+        Actions: buttons,
+    })
 
     return cardChoice {
+        Attachments: attachments,
         Display: "ephemeral",
-        Text: text.String(),
     }
 }
