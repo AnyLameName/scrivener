@@ -1,22 +1,15 @@
 package main
 
 import (
-    "encoding/json"
-    "fmt"
-    "io/ioutil"
     "log"
     "net/http"
-    "net/url"
     "os"
 
     scryfall "github.com/heroku/scrivener/scryfall"
+    slack "github.com/heroku/scrivener/slack"
     "github.com/gin-gonic/gin"
     _ "github.com/heroku/x/hmetrics/onload"
 )
-
-type Card struct {
-    Name string `json:"name"`
-}
 
 type Action struct {
     Name       string `json:"name"`
@@ -40,72 +33,7 @@ type SlackResponse struct {
     Text string `json:"text"`
 }
 
-func fuzzy(text string) string {
-    req, err := http.NewRequest("GET", "https://api.scryfall.com/cards/named", nil)
-    if err != nil {
-        log.Print(err)
-        os.Exit(1)
-    }
-
-    q := url.Values{}
-    q.Add("fuzzy", text)
-
-    req.URL.RawQuery = q.Encode()
-
-    log.Printf("Scryfall url: %s", req.URL.String())
-
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if(err != nil) {
-        // Sure, sure. Error handling. Of course.
-    }
-
-    defer resp.Body.Close()
-    body, err := ioutil.ReadAll(resp.Body)
-
-    card := Card{}
-    err = json.Unmarshal(body, &card)
-
-    log.Printf("Card name: %s", card.Name)
-
-    return card.Name
-}
-
-func cardCallback(c *gin.Context) {
-    text := c.Param("text");
-
-    result := fuzzy(text)
-
-    c.String(http.StatusOK, fmt.Sprintf("Card Name: %s", result));
-}
-
-func slackCallback(c *gin.Context) {
     /*
-    token=gIkuvaNzQIHg97ATvDxqgjtO
-    &team_id=T0001
-    &team_domain=example
-    &enterprise_id=E0001
-    &enterprise_name=Globular%20Construct%20Inc
-    &channel_id=C2147483705
-    &channel_name=test
-    &user_id=U2147483697
-    &user_name=Steve
-    &command=/weather
-    &text=94070
-    &response_url=https://hooks.slack.com/commands/1234/5678
-    &trigger_id=13345224609.738474920.8088930838d88f008e0
-    */
-
-    /*
-    text := c.PostForm("text")
-    log.Printf("Text: %s", text)
-
-    base := "Were you looking for '%s'?"
-    cardName := fuzzy(text)
-    resp := fmt.Sprintf(base, cardName)
-    */
-    scryfall.FuzzySearch("dog")
-
     action1 := Action {
         Name: "card",
         Text: "Chandra, the Cool One",
@@ -138,8 +66,45 @@ func slackCallback(c *gin.Context) {
     }
 
     slack.Attachments = append(slack.Attachments, attach)
+    */
 
-    c.JSON(http.StatusOK, slack)
+func cardSearch(c *gin.Context) {
+    /*
+    token=gIkuvaNzQIHg97ATvDxqgjtO
+    &team_id=T0001
+    &team_domain=example
+    &enterprise_id=E0001
+    &enterprise_name=Globular%20Construct%20Inc
+    &channel_id=C2147483705
+    &channel_name=test
+    &user_id=U2147483697
+    &user_name=Steve
+    &command=/weather
+    &text=94070
+    &response_url=https://hooks.slack.com/commands/1234/5678
+    &trigger_id=13345224609.738474920.8088930838d88f008e0
+    */
+
+    /*
+    base := "Were you looking for '%s'?"
+    cardName := fuzzy(text)
+    resp := fmt.Sprintf(base, cardName)
+    */
+    text := c.PostForm("text")
+    log.Printf("Search text: %s", text)
+    card, err := scryfall.FuzzySearch(text)
+    if(err == nil){
+        log.Printf("FuzzySearch found a card: '%s'", card.Name)
+        slackCard := slack.NewCard(card.Name, card.Images.Large)
+        c.JSON(http.StatusOK, slackCard)
+    }else{
+        log.Printf("We couldn't get a card from FuzzySearch, time to widen the search.")
+        resp := SlackResponse {
+            ResponseType: "ephemeral",
+            Text: "Sorry, couldn't find anything yet.",
+        }
+        c.JSON(http.StatusOK, resp)
+    }
 }
 
 func buttonCallback(c *gin.Context) {
@@ -165,8 +130,7 @@ func main() {
         c.String(http.StatusOK, "You should try making an actual request.")
     })
 
-    router.GET("/card/:text", cardCallback)
-    router.POST("/card/", slackCallback)
+    router.POST("/card/", cardSearch)
     router.POST("/button/", buttonCallback)
 
     router.Run(":" + port)
