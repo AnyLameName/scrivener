@@ -58,7 +58,7 @@ type cardChoice struct {
 
 func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
     var text strings.Builder
-    text.WriteString(fmt.Sprintf("Searching for '_%s_' returned multiple results:", searchString))
+    text.WriteString(fmt.Sprintf("Searching for '%s' returned multiple results:", searchString))
     for _, card := range cardList {
         text.WriteString(fmt.Sprintf("\n%s", card.Name))
     }
