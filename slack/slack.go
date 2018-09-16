@@ -34,7 +34,7 @@ func NewCard(name string, image string) Card {
 
     ret := card {
         Attachments: []Attachment {},
-        Display: "ephemeral",
+        Display: "in_channel",
         Name: name,
     }
 
