@@ -60,16 +60,11 @@ func buttonCallback(c *gin.Context) {
         Text: "Something went wrong processing your response.",
     }
 
-    body, err := c.GetRawData()
-    if(err != nil){
-        log.Printf("Couldn't read request from callback payload.")
-        c.JSON(http.StatusOK, errorResponse)
-        return
-    }
-    log.Printf("Body parsed: %s", body)
+    payload := c.PostForm("payload")
+    log.Printf("Payload retrieved: %s", payload)
 
     callback := slack.Callback{}
-    err = json.Unmarshal(body, &callback)
+    json.Unmarshal([]byte(payload), &callback)
 
     if(len(callback.Actions) == 1){
         answer := callback.Actions[0].Value
