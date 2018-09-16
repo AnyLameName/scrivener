@@ -87,7 +87,7 @@ func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
 
     return cardChoice {
         Attachments: attachments,
-        Display: "ephemeral",
+        Display: "in_channel",
     }
 }
 
