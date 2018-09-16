@@ -33,17 +33,27 @@ type card struct {
 }
 
 func NewCard(scry scryfall.Card) Card {
-    imageAttach := Attachment {
-        Title: scry.Name,
-        URL: scry.Images.Large,
-    }
-
     ret := card {
         Attachments: []Attachment {},
         Display: "in_channel",
     }
 
-    ret.Attachments = append(ret.Attachments, imageAttach)
+    if(scry.Faces == nil){
+        imageAttach := Attachment {
+            Title: scry.Name,
+            URL: scry.Images.Large,
+        }
+        ret.Attachments = append(ret.Attachments, imageAttach)
+    }else{
+        for _, face := range scry.Faces {
+            imageAttach := Attachment {
+                Title: face.Name,
+                URL: face.Images.Large,
+            }
+            ret.Attachments = append(ret.Attachments, imageAttach)
+        }
+    }
+
 
     return ret
 }

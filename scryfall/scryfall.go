@@ -89,13 +89,7 @@ func full(text string) ([]Card, error) {
     err = json.Unmarshal(body, &fullResults)
 
     // Now let's go through this list we just got.
-    for i, card := range fullResults.Cards{
-        log.Printf("Card %d: %s", i, card.Name)
-        if(card.Faces != nil){
-            log.Printf("\tThis card has %d faces.", len(card.Faces))
-            continue
-        }
-        log.Printf("\tAdding to list.")
+    for _, card := range fullResults.Cards{
         cardList = append(cardList, card)
     }
 
