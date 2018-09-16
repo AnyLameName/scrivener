@@ -35,7 +35,6 @@ func NewCard(name string, image string) Card {
     ret := card {
         Attachments: []Attachment {},
         Display: "in_channel",
-        Name: name,
     }
 
     ret.Attachments = append(ret.Attachments, imageAttach)
