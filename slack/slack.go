@@ -90,3 +90,9 @@ func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
         Display: "ephemeral",
     }
 }
+
+
+type Callback struct {
+    CallbackID string `json:"callback_id"`
+    Actions []Action `json:"actions"`
+}

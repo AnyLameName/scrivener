@@ -1,6 +1,7 @@
 package main
 
 import (
+    "encoding/json"
     "log"
     "net/http"
     "os"
@@ -33,63 +34,7 @@ type SlackResponse struct {
     Text string `json:"text"`
 }
 
-    /*
-    action1 := Action {
-        Name: "card",
-        Text: "Chandra, the Cool One",
-        ActionType: "button",
-        Value: "cardOne",
-    }
-
-    action2 := Action {
-        Name: "card",
-        Text: "Chandra, the Lame One",
-        ActionType: "button",
-        Value: "cardTwo",
-    }
-
-    attach := Attachment {
-        Text: "Please choose one.",
-        Fallback: "Please choose one.",
-        CallbackID: "choose_card",
-        Color: "#acacac",
-        AttachmentType: "default",
-        Actions: []Action {},
-    }
-
-    attach.Actions = append(attach.Actions, action1, action2)
-
-    slack := SlackResponse {
-        ResponseType: "ephemeral", //in_channel or ephemeral
-        Text: "I found multiple results for 'Chandra'.",
-        Attachments: []Attachment {},
-    }
-
-    slack.Attachments = append(slack.Attachments, attach)
-    */
-
 func cardSearch(c *gin.Context) {
-    /*
-    token=gIkuvaNzQIHg97ATvDxqgjtO
-    &team_id=T0001
-    &team_domain=example
-    &enterprise_id=E0001
-    &enterprise_name=Globular%20Construct%20Inc
-    &channel_id=C2147483705
-    &channel_name=test
-    &user_id=U2147483697
-    &user_name=Steve
-    &command=/weather
-    &text=94070
-    &response_url=https://hooks.slack.com/commands/1234/5678
-    &trigger_id=13345224609.738474920.8088930838d88f008e0
-    */
-
-    /*
-    base := "Were you looking for '%s'?"
-    cardName := fuzzy(text)
-    resp := fmt.Sprintf(base, cardName)
-    */
     text := c.PostForm("text")
     log.Printf("Search text: %s", text)
     cardList, err := scryfall.Search(text)
@@ -110,12 +55,47 @@ func cardSearch(c *gin.Context) {
 }
 
 func buttonCallback(c *gin.Context) {
-    resp := SlackResponse {
+    errorResponse := SlackResponse {
         ResponseType: "ephemeral",
-        Text: "Thanks for clicking that button!",
+        Text: "Something went wrong processing your response.",
     }
 
-    c.JSON(http.StatusOK, resp)
+    body, err := c.GetRawData()
+    if(err != nil){
+        log.Printf("Couldn't read request from callback payload.")
+        c.JSON(http.StatusOK, errorResponse)
+        return
+    }
+
+    callback := slack.Callback{}
+    err = json.Unmarshal(body, &callback)
+
+    if(len(callback.Actions) == 1){
+        answer := callback.Actions[0].Value
+        log.Printf("They chose '%s'", answer)
+
+        cardList, err := scryfall.Search(answer)
+        if(err != nil){
+            log.Printf("Error in Scryfall search: %s", err)
+            c.JSON(http.StatusOK, errorResponse)
+            return
+        }
+
+        // Still here? Then we found _something_. Let's see what we should do with it.
+        if(len(cardList) == 1){
+            log.Printf("And finally we have a card to show!")
+            card := slack.NewCard(cardList[0])
+            c.JSON(http.StatusOK, card)
+            return
+        }else{
+            log.Printf("Somehow, we still didn't get it down to one card.")
+            resp := slack.NewCardChoice(answer, cardList)
+            c.JSON(http.StatusOK, resp)
+            return
+        }
+    }
+    
+    c.JSON(http.StatusOK, errorResponse)
 }
     
 func main() {
