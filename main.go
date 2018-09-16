@@ -101,10 +101,10 @@ func cardSearch(c *gin.Context) {
 
     // Still here? Then we found _something_. Let's see what we should do with it.
     if(len(cardList) == 1){
-        card := slack.NewCard(cardList[0].Name, cardList[0].Images.Large)
+        card := slack.NewCard(cardList[0])
         c.JSON(http.StatusOK, card)
     }else{
-        resp := slack.NewCardChoice(text)
+        resp := slack.NewCardChoice(text, cardList)
         c.JSON(http.StatusOK, resp)
     }
 }

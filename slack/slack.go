@@ -2,6 +2,8 @@ package slack
 
 import (
     "fmt"
+    "strings"
+    scryfall "github.com/heroku/scrivener/scryfall"
 )
 
 type Action struct {
@@ -30,10 +32,10 @@ type card struct {
     Name string `json:"text"`
 }
 
-func NewCard(name string, image string) Card {
+func NewCard(scry scryfall.Card) Card {
     imageAttach := Attachment {
-        Title: name,
-        URL: image,
+        Title: scry.Name,
+        URL: scry.Images.Large,
     }
 
     ret := card {
@@ -54,9 +56,16 @@ type cardChoice struct {
     Text string `json:"text"`
 }
 
-func NewCardChoice(searchString string) CardChoice {
+func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
+    var text strings.Builder
+    text.WriteString(fmt.Sprintf("Searching for '_%s_' returned multiple results:", searchString))
+    for _, card := range cardList {
+        text.WriteString(fmt.Sprintf("\n%s", card.Name))
+    }
+    text.WriteString("\n")
+
     return cardChoice {
         Display: "ephemeral",
-        Text: fmt.Sprintf("Searching for '%s' returned multiple results. And sadly the UI for the next step isn't ready.", searchString),
+        Text: text.String(),
     }
 }
