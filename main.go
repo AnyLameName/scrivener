@@ -92,17 +92,19 @@ func cardSearch(c *gin.Context) {
     */
     text := c.PostForm("text")
     log.Printf("Search text: %s", text)
-    card, err := scryfall.FuzzySearch(text)
-    if(err == nil){
-        log.Printf("FuzzySearch found a card: '%s'", card.Name)
-        slackCard := slack.NewCard(card.Name, card.Images.Large)
-        c.JSON(http.StatusOK, slackCard)
+    cardList, err := scryfall.Search(text)
+    if(err != nil){
+        log.Printf("Error in Scryfall search: %s", err)
+        c.String(http.StatusOK, "Sorry, something went wrong.")
+        return
+    }
+
+    // Still here? Then we found _something_. Let's see what we should do with it.
+    if(len(cardList) == 1){
+        card := slack.NewCard(cardList[0].Name, cardList[0].Images.Large)
+        c.JSON(http.StatusOK, card)
     }else{
-        log.Printf("We couldn't get a card from FuzzySearch, time to widen the search.")
-        resp := SlackResponse {
-            ResponseType: "ephemeral",
-            Text: "Sorry, couldn't find anything yet.",
-        }
+        resp := slack.NewCardChoice(text)
         c.JSON(http.StatusOK, resp)
     }
 }

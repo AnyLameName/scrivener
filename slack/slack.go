@@ -1,5 +1,9 @@
 package slack
 
+import (
+    "fmt"
+)
+
 type Action struct {
     Name       string `json:"name"`
     Text       string `json:"text"`
@@ -40,4 +44,19 @@ func NewCard(name string, image string) Card {
     ret.Attachments = append(ret.Attachments, imageAttach)
 
     return ret
+}
+
+type CardChoice interface {}
+
+type cardChoice struct {
+    Attachments []Attachment `json:"attachments"`
+    Display string `json:"response_type"`
+    Text string `json:"text"`
+}
+
+func NewCardChoice(searchString string) CardChoice {
+    return cardChoice {
+        Display: "ephemeral",
+        Text: fmt.Sprintf("Searching for '%s' returned multiple results. And sadly the UI for the next step isn't ready.", searchString),
+    }
 }

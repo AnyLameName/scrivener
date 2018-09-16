@@ -13,12 +13,13 @@ type ImageSet struct {
 }
 
 type Card struct {
+    Object string `json:"object"`
+    Type string `json:"type"`
     Name string `json:"name"`
     Images ImageSet `json:"image_uris"`
 }
 
-func FuzzySearch(text string) (Card, error) {
-    log.Printf("Fuzzy search requested: '%s'", text)
+func fuzzy(text string) (Card, error) {
     card := Card{}
 
     req, err := http.NewRequest("GET", "https://api.scryfall.com/cards/named", nil)
@@ -45,8 +46,20 @@ func FuzzySearch(text string) (Card, error) {
 
     err = json.Unmarshal(body, &card)
 
-    log.Printf("Card name: %s", card.Name)
-
     return card, nil
+}
+
+func Search(text string) ([]Card, error) {
+    cardList := []Card{}
+    card, err := fuzzy(text)
+    if(err != nil){
+        return cardList, err
+    }
+    
+    if(card.Object == "card"){
+        cardList = append(cardList, card)
+    }
+
+    return cardList, nil
 }
 
