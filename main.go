@@ -62,7 +62,7 @@ func cardSearch(c *gin.Context) {
     }
 }
 
-func buttonCallback(c *gin.Context) {
+func slackCallback(c *gin.Context) {
     errorResponse := SlackResponse {
         ResponseType: "ephemeral",
         Text: "Something went wrong processing your response.",
@@ -75,7 +75,16 @@ func buttonCallback(c *gin.Context) {
     json.Unmarshal([]byte(payload), &callback)
 
     if(len(callback.Actions) == 1){
-        answer := callback.Actions[0].Value
+        var answer string
+        log.Printf("Slack callback, id: '%s'.", callback.ID)
+        if(callback.ID == "cardButton") {
+            answer = callback.Actions[0].Value
+        } else if(callback.ID == "cardMenu"){
+            answer = callback.Actions[0].Selected[0].Value
+        } else {
+            c.JSON(http.StatusOK, errorResponse)
+            return
+        }
         log.Printf("They chose '%s'", answer)
 
         cardList, err := scryfall.Search(answer)
@@ -101,7 +110,7 @@ func buttonCallback(c *gin.Context) {
     
     c.JSON(http.StatusOK, errorResponse)
 }
-    
+
 func main() {
     port := os.Getenv("PORT")
 
@@ -117,7 +126,7 @@ func main() {
     })
 
     router.POST("/card/", cardSearch)
-    router.POST("/button/", buttonCallback)
+    router.POST("/button/", slackCallback)
 
     router.Run(":" + port)
 }

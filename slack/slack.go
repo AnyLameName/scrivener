@@ -16,6 +16,12 @@ type Action struct {
     ActionType string         `json:"type"`
     Value      string         `json:"value"`
     Options    []actionOption `json:"options"`
+    Selected   []actionOption `json:"selected_options"`
+}
+
+type Callback struct {
+    ID string `json:"callback_id"`
+    Actions []Action `json:"actions"`
 }
 
 type Attachment struct {
@@ -74,43 +80,51 @@ type cardChoice struct {
 }
 
 func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
-    log.Printf("New Card Choice for %d cards.", len(cardList))
+    numCards := len(cardList)
+    log.Printf("New Card Choice for %d cards.", numCards)
 
-    buttons := []Action{}
-    // Let's try adding the menu before we trash the buttons.
-    options := []actionOption {}
-    for _, card := range cardList {
-        options = append(options, actionOption {
-            Text: card.Name,
-            Value: card.Name,
-        })
-    }
-    menuAction := Action {
-        Name: "card",
-        Text: "Please choose a card",
-        ActionType: "select",
-        Options: options,
-    }
-    buttons = append(buttons, menuAction)
+    actions := []Action{}
+    var callbackID string
 
-    // Now the actual buttons.
-    for _, card := range cardList {
-        buttons = append(buttons, Action{
+    if(numCards > 5){
+        // Slack won't let us use more than five buttons, so we need a menu.
+        callbackID = "cardMenu"
+        // Let's try adding the menu before we trash the buttons.
+        options := []actionOption {}
+        for _, card := range cardList {
+            options = append(options, actionOption {
+                Text: card.Name,
+                Value: card.Name,
+            })
+        }
+        menuAction := Action {
             Name: "card",
-            Text: card.Name,
-            ActionType: "button",
-            Value: card.Name,
-        })
+            Text: "Please choose a card",
+            ActionType: "select",
+            Options: options,
+        }
+        actions = append(actions, menuAction)
+    } else {
+        callbackID = "cardButton"
+        // Now the actual buttons.
+        for _, card := range cardList {
+            actions = append(actions, Action{
+                Name: "card",
+                Text: card.Name,
+                ActionType: "button",
+                Value: card.Name,
+            })
+        }
     }
 
     attachments := []Attachment{}
     attachments = append(attachments, Attachment{
-        Text: "Please choose one.",
-        Fallback: "Please choose one.",
-        CallbackID: "choose_card",
+        Text: "There were multiple matches.",
+        Fallback: "There were multiple matches.",
+        CallbackID: callbackID,
         Color: "acacac",
         AttachmentType: "default",
-        Actions: buttons,
+        Actions: actions,
     })
 
     return cardChoice {
@@ -119,8 +133,3 @@ func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
     }
 }
 
-
-type Callback struct {
-    CallbackID string `json:"callback_id"`
-    Actions []Action `json:"actions"`
-}
