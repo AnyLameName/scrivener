@@ -36,7 +36,7 @@ func doSearch(text string, responseURL string) {
     numCards := len(cardList)
     if(numCards == 1){
         resp = slack.NewCard(cardList[0])
-    }else{
+    }else if(numCards > 1){
         resp = slack.NewCardChoice(text, cardList)
     }
 
