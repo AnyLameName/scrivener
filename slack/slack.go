@@ -1,14 +1,21 @@
 package slack
 
 import (
+    "log"
     scryfall "github.com/heroku/scrivener/scryfall"
 )
 
+type actionOption struct {
+    Text string `json:"text"`
+    Value string `json:"value"`
+}
+
 type Action struct {
-    Name       string `json:"name"`
-    Text       string `json:"text"`
-    ActionType string `json:"type"`
-    Value      string `json:"value"`
+    Name       string         `json:"name"`
+    Text       string         `json:"text"`
+    ActionType string         `json:"type"`
+    Value      string         `json:"value"`
+    Options    []actionOption `json:"options"`
 }
 
 type Attachment struct {
@@ -67,7 +74,26 @@ type cardChoice struct {
 }
 
 func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
+    log.Printf("New Card Choice for %s cards.", len(cardList))
+
     buttons := []Action{}
+    // Let's try adding the menu before we trash the buttons.
+    options := []actionOption {}
+    for _, card := range cardList {
+        options = append(options, actionOption {
+            Text: card.Name,
+            Value: card.Name,
+        })
+    }
+    menuAction := Action {
+        Name: "card",
+        Text: "Please choose a card",
+        ActionType: "select",
+        Options: options,
+    }
+    buttons = append(buttons, menuAction)
+
+    // Now the actual buttons.
     for _, card := range cardList {
         buttons = append(buttons, Action{
             Name: "card",
