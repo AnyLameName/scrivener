@@ -18,7 +18,7 @@ func cardSearch(c *gin.Context) {
     responseURL := c.PostForm("response_url")
     log.Printf("Search text: '%s', responding to: '%s'", text, responseURL)
 
-    ack := slack.NewResponse("in_channel", "Searching...")
+    ack := slack.NewResponse("ephemeral", "Searching...")
 
     c.JSON(http.StatusOK, ack)
     go doSearch(text, responseURL)
