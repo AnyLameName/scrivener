@@ -1,9 +1,26 @@
 package slack
 
 import (
+    "bytes"
+    "encoding/json"
     "log"
+    "net/http"
     scryfall "github.com/heroku/scrivener/scryfall"
 )
+
+type Response interface {}
+
+type response struct {
+    ResponseType string `json:"response_type"`
+    Text string `json:"text"`
+}
+
+func NewResponse(responseType string, text string) Response {
+    return response {
+        ResponseType: responseType,
+        Text: text,
+    }
+}
 
 type actionOption struct {
     Text string `json:"text"`
@@ -36,7 +53,9 @@ type Attachment struct {
     URL            string   `json:"image_url"`
 }
 
-type Card interface {}
+type Card interface {
+    Response
+}
 
 type card struct {
     Attachments []Attachment `json:"attachments"`
@@ -133,3 +152,7 @@ func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
     }
 }
 
+func Respond(message Response, url string) {
+    jsonString, _ := json.Marshal(message)
+    http.Post(url, "application/json", bytes.NewBuffer(jsonString))
+}

@@ -13,60 +13,48 @@ import (
     _ "github.com/heroku/x/hmetrics/onload"
 )
 
-type Action struct {
-    Name       string `json:"name"`
-    Text       string `json:"text"`
-    ActionType string `json:"type"`
-    Value      string `json:"value"`
-}
-
-type Attachment struct {
-    Text           string   `json:"text"`
-    Fallback       string   `json:"fallback"`
-    CallbackID     string   `json:"callback_id"`
-    Color          string   `json:"color"`
-    AttachmentType string   `json:"attachment_type"`
-    Actions        []Action `json:"actions"`
-}
-
-type SlackResponse struct {
-    Attachments []Attachment `json:"attachments"`
-    ResponseType string `json:"response_type"`
-    Text string `json:"text"`
-}
-
 func cardSearch(c *gin.Context) {
     text := c.PostForm("text")
-    log.Printf("Search text: %s", text)
+    responseURL := c.PostForm("response_url")
+    log.Printf("Search text: '%s', responding to: '%s'", text, responseURL)
+
+    ack := slack.NewResponse("ephemeral", "Your search is running.")
+
+    c.JSON(http.StatusOK, ack)
+    go doSearch(text, responseURL)
+}
+
+func doSearch(text string, responseURL string) {
     cardList, err := scryfall.Search(text)
     if(err != nil){
         log.Printf("Error in Scryfall search: %s", err)
-        c.String(http.StatusOK, "Sorry, something went wrong.")
-        return
     }
+
+    resp := slack.NewResponse("in_channel", fmt.Sprintf("No cards found matching: '%s'.", text))
 
     // Still here? Then we at least have results to process.
     numCards := len(cardList)
-    if(numCards == 0){
-        resp := SlackResponse {
-            ResponseType: "in_channel",
-            Text: fmt.Sprintf("No cards found matching: '%s'.", text),
-        }
-        c.JSON(http.StatusOK, resp)
-    } else if(numCards == 1){
-        card := slack.NewCard(cardList[0])
-        c.JSON(http.StatusOK, card)
+    if(numCards == 1){
+        resp = slack.NewCard(cardList[0])
     }else{
-        resp := slack.NewCardChoice(text, cardList)
-        c.JSON(http.StatusOK, resp)
+        resp = slack.NewCardChoice(text, cardList)
+    }
+
+    if(responseURL == "log"){
+        logString, err := json.Marshal(resp)
+        if(err == nil){
+            log.Printf("Reponse we would have sent: %s", logString)
+        }else{
+            log.Printf("Couldn't marshal response.")
+        }
+    }else{
+        log.Printf("Responding to : '%s", responseURL)
+        slack.Respond(resp, responseURL)
     }
 }
 
 func slackCallback(c *gin.Context) {
-    errorResponse := SlackResponse {
-        ResponseType: "ephemeral",
-        Text: "Something went wrong processing your response.",
-    }
+    errorResponse := slack.NewResponse("ephemeral", "Something went wrong with your search.")
 
     payload := c.PostForm("payload")
     log.Printf("Payload: %v", payload)
