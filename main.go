@@ -2,6 +2,7 @@ package main
 
 import (
     "encoding/json"
+    "fmt"
     "log"
     "net/http"
     "os"
@@ -44,8 +45,15 @@ func cardSearch(c *gin.Context) {
         return
     }
 
-    // Still here? Then we found _something_. Let's see what we should do with it.
-    if(len(cardList) == 1){
+    // Still here? Then we at least have results to process.
+    numCards := len(cardList)
+    if(numCards == 0){
+        resp := SlackResponse {
+            ResponseType: "in_channel",
+            Text: fmt.Sprintf("No cards found matching: '%s'", text),
+        }
+        c.JSON(http.StatusOK, resp)
+    } else if(numCards == 1){
         card := slack.NewCard(cardList[0])
         c.JSON(http.StatusOK, card)
     }else{
