@@ -19,6 +19,7 @@ type Attachment struct {
     AttachmentType string   `json:"attachment_type"`
     Actions        []Action `json:"actions"`
     Title          string   `json:"title"`
+    Link           string   `json:"title_link"`
     URL            string   `json:"image_url"`
 }
 
@@ -40,6 +41,7 @@ func NewCard(scry scryfall.Card) Card {
         imageAttach := Attachment {
             Title: scry.Name,
             URL: scry.Images.Large,
+            Link: scry.Link,
         }
         ret.Attachments = append(ret.Attachments, imageAttach)
     }else{
