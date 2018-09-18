@@ -3,6 +3,7 @@ package slack
 import (
     "bytes"
     "encoding/json"
+    "io/ioutil"
     "log"
     "net/http"
     scryfall "github.com/heroku/scrivener/scryfall"
@@ -154,5 +155,8 @@ func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
 
 func Respond(message Response, url string) {
     jsonString, _ := json.Marshal(message)
-    http.Post(url, "application/json", bytes.NewBuffer(jsonString))
+    resp, _ := http.Post(url, "application/json", bytes.NewBuffer(jsonString))
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+    log.Printf("Responded to Slack, got back: \n%s", body)
 }
