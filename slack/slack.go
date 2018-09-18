@@ -74,7 +74,7 @@ type cardChoice struct {
 }
 
 func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
-    log.Printf("New Card Choice for %s cards.", len(cardList))
+    log.Printf("New Card Choice for %d cards.", len(cardList))
 
     buttons := []Action{}
     // Let's try adding the menu before we trash the buttons.
