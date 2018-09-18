@@ -50,7 +50,7 @@ func cardSearch(c *gin.Context) {
     if(numCards == 0){
         resp := SlackResponse {
             ResponseType: "in_channel",
-            Text: fmt.Sprintf("No cards found matching: '%s'", text),
+            Text: fmt.Sprintf("No cards found matching: '%s'.", text),
         }
         c.JSON(http.StatusOK, resp)
     } else if(numCards == 1){
