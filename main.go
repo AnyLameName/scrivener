@@ -6,6 +6,7 @@ import (
     "log"
     "net/http"
     "os"
+    "strings"
 
     scryfall "github.com/heroku/scrivener/scryfall"
     slack "github.com/heroku/scrivener/slack"
@@ -16,15 +17,22 @@ import (
 func cardSearch(c *gin.Context) {
     text := c.PostForm("text")
     responseURL := c.PostForm("response_url")
+    LINK := "--link"
+    linkOnly := false
+    if(strings.Index(text, LINK) != -1){
+        log.Printf("Link-only requested")
+        linkOnly = true
+        text = strings.TrimSpace(strings.Replace(text, LINK, "", -1))
+    }
     log.Printf("Search text: '%s', responding to: '%s'", text, responseURL)
 
     ack := slack.NewResponse("in_channel", "Searching...")
 
     c.JSON(http.StatusOK, ack)
-    go doSearch(text, responseURL)
+    go doSearch(text, responseURL, linkOnly)
 }
 
-func doSearch(text string, responseURL string) {
+func doSearch(text string, responseURL string, linkOnly bool) {
     cardList, err := scryfall.Search(text)
     if(err != nil){
         log.Printf("Error in Scryfall search: %s", err)
@@ -35,9 +43,9 @@ func doSearch(text string, responseURL string) {
     // Still here? Then we at least have results to process.
     numCards := len(cardList)
     if(numCards == 1){
-        resp = slack.NewCard(cardList[0])
+        resp = slack.NewCard(cardList[0], linkOnly)
     }else if(numCards > 1){
-        resp = slack.NewCardChoice(text, cardList)
+        resp = slack.NewCardChoice(text, cardList, linkOnly)
     }
 
     if(responseURL == "log"){
@@ -57,7 +65,6 @@ func slackCallback(c *gin.Context) {
     errorResponse := slack.NewResponse("ephemeral", "Something went wrong with your search.")
 
     payload := c.PostForm("payload")
-    log.Printf("Payload: %v", payload)
 
     callback := slack.Callback{}
     json.Unmarshal([]byte(payload), &callback)
@@ -73,6 +80,8 @@ func slackCallback(c *gin.Context) {
             c.JSON(http.StatusOK, errorResponse)
             return
         }
+        // Check for link switch here.
+        linkOnly := false
         log.Printf("They chose '%s'", answer)
 
         cardList, err := scryfall.Search(answer)
@@ -85,12 +94,12 @@ func slackCallback(c *gin.Context) {
         // Still here? Then we found _something_. Let's see what we should do with it.
         if(len(cardList) == 1){
             log.Printf("And finally we have a card to show!")
-            card := slack.NewCard(cardList[0])
+            card := slack.NewCard(cardList[0], linkOnly)
             c.JSON(http.StatusOK, card)
             return
         }else{
             log.Printf("Somehow, we still didn't get it down to one card.")
-            resp := slack.NewCardChoice(answer, cardList)
+            resp := slack.NewCardChoice(answer, cardList, linkOnly)
             c.JSON(http.StatusOK, resp)
             return
         }

@@ -64,7 +64,7 @@ type card struct {
     Name string `json:"text"`
 }
 
-func NewCard(scry scryfall.Card) Card {
+func NewCard(scry scryfall.Card, linkOnly bool) Card {
     ret := card {
         Attachments: []Attachment {},
         Display: "in_channel",
@@ -73,15 +73,20 @@ func NewCard(scry scryfall.Card) Card {
     if(scry.Images.Normal != ""){
         imageAttach := Attachment {
             Title: scry.Name,
-            URL: scry.Images.Normal,
             Link: scry.Link,
+        }
+        if(!linkOnly){
+            imageAttach.URL = scry.Images.Normal
         }
         ret.Attachments = append(ret.Attachments, imageAttach)
     }else if(scry.Faces != nil){
         for _, face := range scry.Faces {
             imageAttach := Attachment {
                 Title: face.Name,
-                URL: face.Images.Normal,
+                Link: face.Link,
+            }
+            if(!linkOnly){
+                imageAttach.URL = face.Images.Normal
             }
             ret.Attachments = append(ret.Attachments, imageAttach)
         }
@@ -105,7 +110,7 @@ type cardChoice struct {
     Text string `json:"text"`
 }
 
-func NewCardChoice(searchString string, cardList []scryfall.Card) CardChoice {
+func NewCardChoice(searchString string, cardList []scryfall.Card, linkOnly bool) CardChoice {
     numCards := len(cardList)
     log.Printf("New Card Choice for %d cards.", numCards)
 
