@@ -80,15 +80,21 @@ func NewCard(scry scryfall.Card, linkOnly bool) Card {
         }
         ret.Attachments = append(ret.Attachments, imageAttach)
     }else if(scry.Faces != nil){
-        for _, face := range scry.Faces {
+        if(linkOnly){
             imageAttach := Attachment {
-                Title: face.Name,
+                Title: scry.Name,
                 Link: scry.Link,
             }
-            if(!linkOnly){
-                imageAttach.URL = face.Images.Normal
-            }
             ret.Attachments = append(ret.Attachments, imageAttach)
+        }else{
+            for _, face := range scry.Faces {
+                imageAttach := Attachment {
+                    Title: face.Name,
+                    URL: face.Images.Normal,
+                    Link: scry.Link,
+                }
+                ret.Attachments = append(ret.Attachments, imageAttach)
+            }
         }
     }else{
         imageAttach := Attachment {
