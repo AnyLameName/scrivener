@@ -38,6 +38,17 @@ func cardSearch(c *gin.Context) {
     go doSearch(text, responseURL, linkOnly)
 }
 
+func linkSearch(c *gin.Context) {
+    text := c.PostForm("text")
+    responseURL := c.PostForm("response_url")
+    log.Printf("Link search text: '%s', responding to: '%s'", text, responseURL)
+
+    ack := slack.NewResponse("in_channel", "Searching...")
+
+    c.JSON(http.StatusOK, ack)
+    go doSearch(text, responseURL, true)
+}
+
 func doSearch(text string, responseURL string, linkOnly bool) {
     cardList, err := scryfall.Search(text)
     if(err != nil){
@@ -129,6 +140,7 @@ func main() {
     })
 
     router.POST("/card/", cardSearch)
+    router.POST("/link/", linkSearch)
     router.POST("/button/", slackCallback)
 
     router.Run(":" + port)
