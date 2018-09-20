@@ -83,7 +83,7 @@ func NewCard(scry scryfall.Card, linkOnly bool) Card {
         for _, face := range scry.Faces {
             imageAttach := Attachment {
                 Title: face.Name,
-                Link: face.Link,
+                Link: scry.Link,
             }
             if(!linkOnly){
                 imageAttach.URL = face.Images.Normal
