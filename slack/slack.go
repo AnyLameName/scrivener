@@ -143,12 +143,16 @@ func NewCardChoice(searchString string, cardList []scryfall.Card, linkOnly bool)
         callbackID = "cardButton"
         // Now the actual buttons.
         for _, card := range cardList {
-            actions = append(actions, Action{
+            action := Action {
                 Name: "card",
                 Text: card.Name,
                 ActionType: "button",
                 Value: card.Name,
-            })
+            }
+            if(linkOnly){
+                action.Value = fmt.Sprintf("%s --link", action.Value)
+            }
+            actions = append(actions, action)
         }
     }
 
