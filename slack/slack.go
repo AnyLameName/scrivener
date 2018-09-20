@@ -3,6 +3,7 @@ package slack
 import (
     "bytes"
     "encoding/json"
+    "fmt"
     "log"
     "net/http"
     scryfall "github.com/heroku/scrivener/scryfall"
@@ -69,14 +70,14 @@ func NewCard(scry scryfall.Card) Card {
         Display: "in_channel",
     }
 
-    if(scry.Faces == nil){
+    if(scry.Images.Large != ""){
         imageAttach := Attachment {
             Title: scry.Name,
             URL: scry.Images.Large,
             Link: scry.Link,
         }
         ret.Attachments = append(ret.Attachments, imageAttach)
-    }else{
+    }else if(scry.Faces != nil){
         for _, face := range scry.Faces {
             imageAttach := Attachment {
                 Title: face.Name,
@@ -84,6 +85,12 @@ func NewCard(scry scryfall.Card) Card {
             }
             ret.Attachments = append(ret.Attachments, imageAttach)
         }
+    }else{
+        imageAttach := Attachment {
+            Title: fmt.Sprintf("%s - Image not available.", scry.Name),
+            Link: scry.Link,
+        }
+        ret.Attachments = append(ret.Attachments, imageAttach)
     }
 
 
