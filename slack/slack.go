@@ -123,10 +123,14 @@ func NewCardChoice(searchString string, cardList []scryfall.Card, linkOnly bool)
         // Let's try adding the menu before we trash the buttons.
         options := []actionOption {}
         for _, card := range cardList {
-            options = append(options, actionOption {
+            opt := actionOption {
                 Text: card.Name,
                 Value: card.Name,
-            })
+            }
+            if(linkOnly){
+                opt.Value = fmt.Sprintf("%s --link", opt.Value)
+            }
+            options = append(options, opt)
         }
         menuAction := Action {
             Name: "card",
