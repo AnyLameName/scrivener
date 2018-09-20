@@ -70,10 +70,10 @@ func NewCard(scry scryfall.Card) Card {
         Display: "in_channel",
     }
 
-    if(scry.Images.Large != ""){
+    if(scry.Images.Normal != ""){
         imageAttach := Attachment {
             Title: scry.Name,
-            URL: scry.Images.Large,
+            URL: scry.Images.Normal,
             Link: scry.Link,
         }
         ret.Attachments = append(ret.Attachments, imageAttach)
@@ -81,7 +81,7 @@ func NewCard(scry scryfall.Card) Card {
         for _, face := range scry.Faces {
             imageAttach := Attachment {
                 Title: face.Name,
-                URL: face.Images.Large,
+                URL: face.Images.Normal,
             }
             ret.Attachments = append(ret.Attachments, imageAttach)
         }

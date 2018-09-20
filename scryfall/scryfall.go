@@ -9,6 +9,8 @@ import (
 )
 
 type ImageSet struct {
+    Small string `json:"small"`
+    Normal string `json:"normal"`
     Large string `json:"large"`
 }
 
