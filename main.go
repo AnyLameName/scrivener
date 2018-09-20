@@ -14,16 +14,22 @@ import (
     _ "github.com/heroku/x/hmetrics/onload"
 )
 
+func isLinkOnly(text string) (flag bool, newText string){
+    LINK := "--link"
+    flag = false
+    newText = text
+    if(strings.Index(text, LINK) != -1){
+        log.Printf("Link-only requested")
+        flag = true
+        newText = strings.TrimSpace(strings.Replace(text, LINK, "", -1))
+    }
+    return flag, newText
+}
+
 func cardSearch(c *gin.Context) {
     text := c.PostForm("text")
     responseURL := c.PostForm("response_url")
-    LINK := "--link"
-    linkOnly := false
-    if(strings.Index(text, LINK) != -1){
-        log.Printf("Link-only requested")
-        linkOnly = true
-        text = strings.TrimSpace(strings.Replace(text, LINK, "", -1))
-    }
+    linkOnly, text := isLinkOnly(text)
     log.Printf("Search text: '%s', responding to: '%s'", text, responseURL)
 
     ack := slack.NewResponse("in_channel", "Searching...")
@@ -81,7 +87,7 @@ func slackCallback(c *gin.Context) {
             return
         }
         // Check for link switch here.
-        linkOnly := false
+        linkOnly, answer := isLinkOnly(answer)
         log.Printf("They chose '%s'", answer)
 
         cardList, err := scryfall.Search(answer)
