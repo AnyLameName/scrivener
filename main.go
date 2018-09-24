@@ -32,9 +32,7 @@ func cardSearch(c *gin.Context) {
     linkOnly, text := isLinkOnly(text)
     log.Printf("Search text: '%s', responding to: '%s'", text, responseURL)
 
-    ack := slack.NewResponse("in_channel", "Searching...")
-
-    c.JSON(http.StatusOK, ack)
+    c.String(http.StatusOK, "")
     go doSearch(text, responseURL, linkOnly)
 }
 
@@ -43,9 +41,7 @@ func linkSearch(c *gin.Context) {
     responseURL := c.PostForm("response_url")
     log.Printf("Link search text: '%s', responding to: '%s'", text, responseURL)
 
-    ack := slack.NewResponse("in_channel", "Searching...")
-
-    c.JSON(http.StatusOK, ack)
+    c.String(http.StatusOK, "")
     go doSearch(text, responseURL, true)
 }
 
