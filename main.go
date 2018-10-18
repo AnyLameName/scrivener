@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "fmt"
     "log"
+    "math/rand"
     "net/http"
     "os"
     "strings"
@@ -121,6 +122,18 @@ func slackCallback(c *gin.Context) {
     c.JSON(http.StatusOK, errorResponse)
 }
 
+func rollCallback(c *gin.Context) {
+    rollNumber := rand.Intn(20) + 1
+
+    username := c.PostForm("user_name")
+    if(username == ""){
+        username = "You"
+    }
+
+    response := slack.NewResponse("in_channel", fmt.Sprintf("%s rolled a %d!", username, rollNumber))
+    c.JSON(http.StatusOK, response)
+}
+
 func main() {
     port := os.Getenv("PORT")
 
@@ -138,6 +151,7 @@ func main() {
     router.POST("/card/", cardSearch)
     router.POST("/link/", linkSearch)
     router.POST("/button/", slackCallback)
+    router.POST("/roll/", rollCallback) // Nothing to do with scrivener, but hey we've already got the bot here.
 
     router.Run(":" + port)
 }
