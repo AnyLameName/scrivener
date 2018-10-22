@@ -72,7 +72,7 @@ func full(text string) ([]Card, error) {
     }
 
     q := url.Values{}
-    q.Add("order", "rarity")
+    q.Add("order", "released")
     q.Add("q", text)
 
     req.URL.RawQuery = q.Encode()
