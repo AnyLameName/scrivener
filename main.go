@@ -34,7 +34,7 @@ func cardSearch(c *gin.Context) {
     log.Printf("Search text: '%s', responding to: '%s'", text, responseURL)
 
     c.String(http.StatusOK, "")
-    go doSearch(text, responseURL, linkOnly)
+    go doSearch(text, responseURL, linkOnly, false)
 }
 
 
@@ -45,36 +45,7 @@ func walkerSearch(c *gin.Context) {
     log.Printf("Planeswalker search text: '%s', responding to: '%s'", text, responseURL)
 
     c.String(http.StatusOK, "")
-    go doWalkerSearch(text, responseURL, linkOnly)
-}
-
-func doWalkerSearch(text string, responseURL string, linkOnly bool) {
-    cardList, err := scryfall.WalkerSearch(text)
-    if(err != nil){
-        log.Printf("Error in Scryfall search: %s", err)
-    }
-
-    resp := slack.NewResponse("in_channel", fmt.Sprintf("No planeswalker cards found matching: '%s'.", text))
-
-    // Still here? Then we at least have results to process.
-    numCards := len(cardList)
-    if(numCards == 1){
-        resp = slack.NewCard(cardList[0], linkOnly)
-    }else if(numCards > 1){
-        resp = slack.NewCardChoice(text, cardList, linkOnly)
-    }
-
-    if(responseURL == "log"){
-        logString, err := json.Marshal(resp)
-        if(err == nil){
-            log.Printf("Reponse we would have sent: %s", logString)
-        }else{
-            log.Printf("Couldn't marshal response.")
-        }
-    }else{
-        log.Printf("Responding to : '%s", responseURL)
-        slack.Respond(resp, responseURL)
-    }
+    go doSearch(text, responseURL, linkOnly, true)
 }
 
 func linkSearch(c *gin.Context) {
@@ -83,11 +54,19 @@ func linkSearch(c *gin.Context) {
     log.Printf("Link search text: '%s', responding to: '%s'", text, responseURL)
 
     c.String(http.StatusOK, "")
-    go doSearch(text, responseURL, true)
+    go doSearch(text, responseURL, true, false)
 }
 
-func doSearch(text string, responseURL string, linkOnly bool) {
-    cardList, err := scryfall.Search(text)
+func doSearch(text string, responseURL string, linkOnly bool, walkerOnly bool) {
+    cardList := []scryfall.Card{}
+    var err error
+
+    if(walkerOnly) {
+        cardList, err = scryfall.WalkerSearch(text)
+    }else{
+        cardList, err = scryfall.Search(text) 
+    }
+
     if(err != nil){
         log.Printf("Error in Scryfall search: %s", err)
     }
