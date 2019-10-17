@@ -37,6 +37,46 @@ func cardSearch(c *gin.Context) {
     go doSearch(text, responseURL, linkOnly)
 }
 
+
+func walkerSearch(c *gin.Context) {
+    text := c.PostForm("text")
+    responseURL := c.PostForm("response_url")
+    linkOnly, text := isLinkOnly(text)
+    log.Printf("Planeswalker search text: '%s', responding to: '%s'", text, responseURL)
+
+    c.String(http.StatusOK, "")
+    go doWalkerSearch(text, responseURL, linkOnly)
+}
+
+func doWalkerSearch(text string, responseURL string, linkOnly bool) {
+    cardList, err := scryfall.WalkerSearch(text)
+    if(err != nil){
+        log.Printf("Error in Scryfall search: %s", err)
+    }
+
+    resp := slack.NewResponse("in_channel", fmt.Sprintf("No planeswalker cards found matching: '%s'.", text))
+
+    // Still here? Then we at least have results to process.
+    numCards := len(cardList)
+    if(numCards == 1){
+        resp = slack.NewCard(cardList[0], linkOnly)
+    }else if(numCards > 1){
+        resp = slack.NewCardChoice(text, cardList, linkOnly)
+    }
+
+    if(responseURL == "log"){
+        logString, err := json.Marshal(resp)
+        if(err == nil){
+            log.Printf("Reponse we would have sent: %s", logString)
+        }else{
+            log.Printf("Couldn't marshal response.")
+        }
+    }else{
+        log.Printf("Responding to : '%s", responseURL)
+        slack.Respond(resp, responseURL)
+    }
+}
+
 func linkSearch(c *gin.Context) {
     text := c.PostForm("text")
     responseURL := c.PostForm("response_url")
@@ -149,6 +189,7 @@ func main() {
     })
 
     router.POST("/card/", cardSearch)
+    router.POST("/walker/", walkerSearch)
     router.POST("/link/", linkSearch)
     router.POST("/button/", slackCallback)
     router.POST("/roll/", rollCallback) // Nothing to do with scrivener, but hey we've already got the bot here.

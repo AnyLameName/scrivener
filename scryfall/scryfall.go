@@ -2,10 +2,12 @@ package scryfall
 
 import (
     "encoding/json"
+    "fmt"
     "io/ioutil"
     "log"
     "net/http"
     "net/url"
+    "strings"
 )
 
 type ImageSet struct {
@@ -61,10 +63,9 @@ func fuzzy(text string) (Card, error) {
     return card, nil
 }
 
-func full(text string) ([]Card, error) {
+func full(text string, walkerOnly bool) ([]Card, error) {
     log.Printf("Full search initiated.")
     cardList := []Card {}
-    //https://api.scryfall.com/cards/search?order=cmc&q=chandra
     req, err := http.NewRequest("GET", "https://api.scryfall.com/cards/search", nil)
     if err != nil {
         log.Print(err)
@@ -73,9 +74,17 @@ func full(text string) ([]Card, error) {
 
     q := url.Values{}
     q.Add("order", "released")
+
+    if(walkerOnly){
+        text = fmt.Sprintf("type:planeswalker+%s", text)
+    }
     q.Add("q", text)
 
     req.URL.RawQuery = q.Encode()
+
+    // Scryfall breaks if we let the "planeswalker+" turn into "planeswalker%3A".
+    // We have to put it back after everything is encoded.
+    req.URL.RawQuery = strings.Replace(req.URL.RawQuery, "planeswalker%2B", "planeswalker+", 1)
 
     log.Printf("Scryfall url: %s", req.URL.String())
 
@@ -111,9 +120,17 @@ func Search(text string) ([]Card, error) {
     }
 
     if(card.Object == "error" && card.Type == "ambiguous"){
-        cardList, err = full(text)
+        cardList, err = full(text, false)
     }
 
     return cardList, nil
 }
 
+func WalkerSearch(text string) ([]Card, error) {
+    cardList, err := full(text, true)
+    if(err != nil){
+        return cardList, err
+    }
+
+    return cardList, nil
+}
