@@ -4,7 +4,6 @@ import (
     "encoding/json"
     "fmt"
     "log"
-    "math/rand"
     "net/http"
     "os"
     "os/signal"
@@ -144,16 +143,29 @@ func slackCallback(c *gin.Context) {
     c.JSON(http.StatusOK, errorResponse)
 }
 
-func rollCallback(c *gin.Context) {
-    rollNumber := rand.Intn(20) + 1
+func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, text string, walkerOnly bool) {
+    cardList := []scryfall.Card{}
+    var err error
 
-    username := c.PostForm("user_name")
-    if(username == ""){
-        username = "You"
+    if(walkerOnly) {
+        cardList, err = scryfall.WalkerSearch(text)
+    }else{
+        cardList, err = scryfall.Search(text) 
     }
 
-    response := slack.NewResponse("in_channel", fmt.Sprintf("%s rolled a %d!", username, rollNumber))
-    c.JSON(http.StatusOK, response)
+    if(err != nil){
+        log.Printf("Error in Scryfall search: %s", err)
+    }
+
+    // Still here? Then we at least have results to process.
+    numCards := len(cardList)
+    if(numCards == 1){
+        response := fmt.Sprintf("Is *this* your card? %s", cardList[0].Link)
+        session.ChannelMessageSend(msg.ChannelID, response)
+    }else if(numCards > 1){
+        thanks := fmt.Sprintf("We found multiple results for '%s'. Sorry, but we don't have the choice menu yet.", text)
+        session.ChannelMessageSend(msg.ChannelID, thanks)
+    }
 }
 
 func ready(s *discordgo.Session, event *discordgo.Ready){
@@ -167,28 +179,21 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
     }
 
     // Look for our trigger word.
-    if(strings.HasPrefix(msg.Content, "!card")){
-        session.ChannelMessageSend(msg.ChannelID, "Thank you for using Scrivener. Goodbye.")
-    }
-}
-
-func guildCreate(session *discordgo.Session, event *discordgo.GuildCreate){
-    if(event.Guild.Unavailable){
-        return
-    }
-
-    for _, channel := range event.Guild.Channels {
-        if(channel.ID == event.Guild.ID){
-            session.ChannelMessageSend(channel.ID, "Scrivener, reporting for duty! Use !card to start a search.")
+    trigger := "!card"
+    if(strings.HasPrefix(msg.Content, trigger)){
+        // Make sure there is at least a three-character search term and a space after the trigger.
+        if(len(msg.Content) < (len(trigger) + 4)){
+            session.ChannelMessageSend(msg.ChannelID, "Thanks for using Scrivener. I need to be given a search term of at least three characters.")
             return
         }
+
+        searchText := msg.Content[6:len(msg.Content)]
+        log.Printf("Search initiated: '%s'", searchText)
+        discordSearch(session, msg, searchText, false)
     }
 }
 
 func main() {
-
-    // Discord support.
-
     token := os.Getenv("DISCORD_TOKEN")
     if token == "" {
         log.Fatal("$DISCORD_TOKEN must be set or we can't register with discord.")
@@ -203,7 +208,6 @@ func main() {
 
     discord.AddHandler(ready)
     discord.AddHandler(messageCreate)
-    discord.AddHandler(guildCreate)
 
     err = discord.Open()
     if(err != nil){
