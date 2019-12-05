@@ -3,7 +3,6 @@ package main
 import (
     "encoding/json"
     "fmt"
-    "github.com/bwmarrin/discordgo"
     "log"
     "math/rand"
     "net/http"
@@ -14,6 +13,7 @@ import (
 
     scryfall "github.com/heroku/scrivener/scryfall"
     slack "github.com/heroku/scrivener/slack"
+    "github.com/bwmarrin/discordgo"
     "github.com/gin-gonic/gin"
     _ "github.com/heroku/x/hmetrics/onload"
 )
