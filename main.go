@@ -216,7 +216,7 @@ func main() {
     */
 
 
-    token := os.Getenv("TOKEN")
+    token := os.Getenv("DISCORD_TOKEN")
     if token == "" {
         log.Fatal("$TOKEN must be set or we can't register with discord.")
         return
