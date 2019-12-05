@@ -2,6 +2,8 @@ module github.com/heroku/scrivener
 
 go 1.13
 
+// +heroku goVersion go1.13
+
 require (
 	github.com/bwmarrin/discordgo v0.20.1
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7
