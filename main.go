@@ -3,11 +3,14 @@ package main
 import (
     "encoding/json"
     "fmt"
+    "github.com/bwmarrin/discordgo"
     "log"
     "math/rand"
     "net/http"
     "os"
+    "os/signal"
     "strings"
+    "syscall"
 
     scryfall "github.com/heroku/scrivener/scryfall"
     slack "github.com/heroku/scrivener/slack"
@@ -153,6 +156,35 @@ func rollCallback(c *gin.Context) {
     c.JSON(http.StatusOK, response)
 }
 
+func ready(s *discordgo.Session, event *discordgo.Ready){
+    s.UpdateStatus(0, "!card")
+}
+
+func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
+    // Ignore our own messages.
+    if(msg.Author.ID == session.State.User.ID){
+        return
+    }
+
+    // Look for our trigger word.
+    if(strings.HasPrefix(msg.Content, "!card")){
+        session.ChannelMessageSend(msg.ChannelID, "Thank you for using Scrivener. Goodbye.")
+    }
+}
+
+func guildCreate(session *discordgo.Session, event *discordgo.GuildCreate){
+    if(event.Guild.Unavailable){
+        return
+    }
+
+    for _, channel := range event.Guild.Channels {
+        if(channel.ID == event.Guild.ID){
+            session.ChannelMessageSend(channel.ID, "Scrivener, reporting for duty! Use !card to start a search.")
+            return
+        }
+    }
+}
+
 func main() {
     port := os.Getenv("PORT")
 
@@ -160,6 +192,8 @@ func main() {
         log.Fatal("$PORT must be set")
     }
 
+    /*
+    // Slack support.
     router := gin.New()
     router.Use(gin.Logger())
 
@@ -171,7 +205,44 @@ func main() {
     router.POST("/walker/", walkerSearch)
     router.POST("/link/", linkSearch)
     router.POST("/button/", slackCallback)
-    router.POST("/roll/", rollCallback) // Nothing to do with scrivener, but hey we've already got the bot here.
+    router.POST("/roll/", rollCallback)
 
     router.Run(":" + port)
+    */
+
+    // Discord support.
+    /*
+    https://discordapp.com/oauth2/authorize?&client_id=652175292521119785&scope=bot&permissions384064
+    */
+
+
+    token := os.Getenv("TOKEN")
+    if token == "" {
+        log.Fatal("$TOKEN must be set or we can't register with discord.")
+        return
+    }
+
+
+    discord, err := discordgo.New("Bot " + token)
+    if(err != nil){
+        log.Printf("Error creating discord session: %s", err)
+    }
+
+    discord.AddHandler(ready)
+    discord.AddHandler(messageCreate)
+    discord.AddHandler(guildCreate)
+
+    err = discord.Open()
+    if(err != nil){
+        log.Print(err)
+    }
+
+    log.Print("Scrivener Discord functionality online. Press ctrl-c to exit.")
+    // Wait here until CTRL-C or other term signal is received.
+    sc := make(chan os.Signal, 1)
+    signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+    <-sc
+
+    // Cleanly close down the Discord session.
+    discord.Close()
 }
