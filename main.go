@@ -186,37 +186,12 @@ func guildCreate(session *discordgo.Session, event *discordgo.GuildCreate){
 }
 
 func main() {
-    port := os.Getenv("PORT")
-
-    if port == "" {
-        log.Fatal("$PORT must be set")
-    }
-
-    // Slack support.
-    router := gin.New()
-    router.Use(gin.Logger())
-
-    router.GET("/", func(c *gin.Context) {
-        c.String(http.StatusOK, "You should try making an actual request.")
-    })
-
-    router.POST("/card/", cardSearch)
-    router.POST("/walker/", walkerSearch)
-    router.POST("/link/", linkSearch)
-    router.POST("/button/", slackCallback)
-    router.POST("/roll/", rollCallback)
-
-    router.Run(":" + port)
 
     // Discord support.
-    /*
-    https://discordapp.com/oauth2/authorize?&client_id=652175292521119785&scope=bot&permissions384064
-    */
-
 
     token := os.Getenv("DISCORD_TOKEN")
     if token == "" {
-        log.Fatal("$TOKEN must be set or we can't register with discord.")
+        log.Fatal("$DISCORD_TOKEN must be set or we can't register with discord.")
         return
     }
 

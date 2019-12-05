@@ -1,1 +1,1 @@
-web: scrivener
+worker: scrivener
