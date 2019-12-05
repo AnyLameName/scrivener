@@ -192,7 +192,6 @@ func main() {
         log.Fatal("$PORT must be set")
     }
 
-    /*
     // Slack support.
     router := gin.New()
     router.Use(gin.Logger())
@@ -208,7 +207,6 @@ func main() {
     router.POST("/roll/", rollCallback)
 
     router.Run(":" + port)
-    */
 
     // Discord support.
     /*
