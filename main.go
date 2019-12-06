@@ -160,15 +160,13 @@ func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, tex
 
     // Still here? Then we at least have results to process.
     numCards := len(cardList)
+    embed := discordgo.MessageEmbed{}
     if(numCards == 1){
-        //response := fmt.Sprintf("Is *this* your card? %s", cardList[0].Link)
-        //session.ChannelMessageSend(msg.ChannelID, response)
-        embed := discord.EmbedCard(cardList[0])
-        session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
+        embed = discord.EmbedCard(cardList[0])
     }else if(numCards > 1){
-        thanks := fmt.Sprintf("We found multiple results for '%s'. Sorry, but we don't have the choice menu yet.", text)
-        session.ChannelMessageSend(msg.ChannelID, thanks)
+        embed = discord.EmbedChoice(cardList)
     }
+    session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
 }
 
 func ready(s *discordgo.Session, event *discordgo.Ready){

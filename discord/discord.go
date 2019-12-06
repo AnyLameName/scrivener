@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"fmt"
 	"log"
 
     "github.com/bwmarrin/discordgo"
@@ -18,6 +19,20 @@ func EmbedCard(card scryfall.Card) discordgo.MessageEmbed {
 		Color: getColor(card.ColorIdentity),
 		Image: &image,
 		URL: card.Link,
+	}
+
+	return ret
+}
+
+func EmbedChoice(cardList []scryfall.Card) discordgo.MessageEmbed {
+	prompt := "Please choose from the list below. (Type the number)"
+	for index, card := range cardList {
+		prompt = prompt + fmt.Sprintf("\n**[%d]** - %s", index + 1, card.Name)
+	}
+
+	ret := discordgo.MessageEmbed {
+		Title: "Multiple Matches Found",
+		Description: prompt,
 	}
 
 	return ret
