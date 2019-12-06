@@ -10,6 +10,7 @@ import (
     "strings"
     "syscall"
 
+    discord "github.com/heroku/scrivener/discord"
     scryfall "github.com/heroku/scrivener/scryfall"
     slack "github.com/heroku/scrivener/slack"
     "github.com/bwmarrin/discordgo"
@@ -160,8 +161,10 @@ func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, tex
     // Still here? Then we at least have results to process.
     numCards := len(cardList)
     if(numCards == 1){
-        response := fmt.Sprintf("Is *this* your card? %s", cardList[0].Link)
-        session.ChannelMessageSend(msg.ChannelID, response)
+        //response := fmt.Sprintf("Is *this* your card? %s", cardList[0].Link)
+        //session.ChannelMessageSend(msg.ChannelID, response)
+        embed := discord.EmbedCard(cardList[0])
+        session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
     }else if(numCards > 1){
         thanks := fmt.Sprintf("We found multiple results for '%s'. Sorry, but we don't have the choice menu yet.", text)
         session.ChannelMessageSend(msg.ChannelID, thanks)
@@ -181,6 +184,7 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
     // Look for our trigger word.
     trigger := "!card"
     if(strings.HasPrefix(msg.Content, trigger)){
+        log.Println("---")
         // Make sure there is at least a three-character search term and a space after the trigger.
         if(len(msg.Content) < (len(trigger) + 4)){
             session.ChannelMessageSend(msg.ChannelID, "Thanks for using Scrivener. I need to be given a search term of at least three characters.")

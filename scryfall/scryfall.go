@@ -23,6 +23,7 @@ type Card struct {
     Images ImageSet `json:"image_uris"`
     Faces []Card `json:"card_faces"`
     Link string `json:"scryfall_uri"`
+    ColorIdentity []string `json:"color_identity"`
 }
 
 type FullSearch struct {
