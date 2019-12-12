@@ -30,6 +30,11 @@ func EmbedChoice(cardList []scryfall.Card) discordgo.MessageEmbed {
 		prompt = prompt + fmt.Sprintf("\n**[%d]** - %s", index + 1, card.Name)
 	}
 
+	// Discord has its limits.
+	if(len(prompt) >= 2048) {
+		prompt = "Unfortunately there were so many matches that discord won't even let us ask about them all here. Please narrow it down."
+	}
+
 	ret := discordgo.MessageEmbed {
 		Title: "Multiple Matches Found",
 		Description: prompt,

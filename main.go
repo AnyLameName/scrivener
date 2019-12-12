@@ -242,7 +242,11 @@ func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, tex
     }else if(numCards > 1){
         user := msg.Author.ID
         embed = discord.EmbedChoice(cardList)
-        embeddedMsg, _ := session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
+        log.Printf("Embedded Message: %v", embed)
+        embeddedMsg, err := session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
+        if err != nil {
+            log.Fatal("Error trying to send embedded message: '%s'", err)
+        }
         addChoiceToDB(user, cardList, embeddedMsg.ID)
     }
 }
