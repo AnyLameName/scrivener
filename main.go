@@ -205,7 +205,7 @@ func checkChoice(user string, number int) (cardName string, msgID string) {
     err = json.Unmarshal(choicesJson, &cardList)
 
     index := number - 1
-    if(index > 0 && number < len(cardList)){
+    if(index >= 0 && number < len(cardList)){
         cardName = cardList[index].Name
     }
 
@@ -272,7 +272,7 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
         }
 
         searchText := msg.Content[6:len(msg.Content)]
-        log.Printf("Search initiated: '%s'", searchText)
+        log.Printf("Search initiated by '%s': '%s'", msg.Author.Username, searchText)
         discordSearch(session, msg, searchText, false)
     }
 
@@ -284,7 +284,7 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
     } else if(matched) {
         log.Println("---")
         number, _ := strconv.Atoi(msg.Content)
-        log.Printf("Found a potential clarification from '%s': %d", msg.Author.ID, number)
+        log.Printf("Found a potential clarification from '%s' aka '%s': %d", msg.Author.ID, msg.Author.Username, number)
         cardName, msgToDelete := checkChoice(msg.Author.ID, number)
         if(cardName != ""){
             log.Printf("Found a choice: '%s'", cardName)
