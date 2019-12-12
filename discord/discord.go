@@ -2,7 +2,6 @@ package discord
 
 import (
 	"fmt"
-	"log"
 
     "github.com/bwmarrin/discordgo"
     scryfall "github.com/heroku/scrivener/scryfall"
@@ -44,7 +43,6 @@ func EmbedChoice(cardList []scryfall.Card) discordgo.MessageEmbed {
 }
 
 func getColor(identity []string) int {
-	log.Printf("Determining color for: '%v'", identity)
 	if(len(identity) > 1){
 		return 0x997300
 	} else if (len(identity) == 0){
@@ -65,4 +63,9 @@ func getColor(identity []string) int {
 	default:
 		return 0x150B00
 	}
+}
+
+func RespondWithCard(card scryfall.Card, session *discordgo.Session, channelID string) {
+    embed := EmbedCard(card)
+    session.ChannelMessageSendEmbed(channelID, &embed)
 }

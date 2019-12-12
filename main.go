@@ -12,19 +12,14 @@ import (
     "strings"
     "syscall"
 
+    choices "github.com/heroku/scrivener/choices"
     discord "github.com/heroku/scrivener/discord"
     scryfall "github.com/heroku/scrivener/scryfall"
     slack "github.com/heroku/scrivener/slack"
     "github.com/bwmarrin/discordgo"
     "github.com/gin-gonic/gin"
-    "github.com/gomodule/redigo/redis"
     _ "github.com/heroku/x/hmetrics/onload"
 )
-
-type CardChoice struct {
-    Number int
-    Name string
-}
 
 func isLinkOnly(text string) (flag bool, newText string){
     LINK := "--link"
@@ -152,73 +147,6 @@ func slackCallback(c *gin.Context) {
     c.JSON(http.StatusOK, errorResponse)
 }
 
-func addChoiceToDB(user string, cardList []scryfall.Card, msgID string){
-    log.Printf("Adding a choice to the db for user '%s'", user)
-
-    // Connect to redis.
-    db, err := redis.DialURL(os.Getenv("REDIS_URL"))
-    if err != nil {
-        log.Printf("Could not connect to redis: '%s'", err)
-        return
-    }
-    defer db.Close()
-
-    // Make our JSON string to store.
-    choices := []CardChoice{}
-    for i, card := range cardList {
-        choice := CardChoice {
-            Name: card.Name,
-            Number: i + 1,
-        }
-        choices = append(choices, choice)
-    }
-    jsonString, _ := json.Marshal(choices)
-
-    _, err = db.Do("HMSET", user, "choices", jsonString, "msgID", msgID)
-    if err != nil {
-        log.Printf("Could not add choice to db: '%s'")
-    } else {
-        log.Printf("Choice added.")
-    }
-}
-
-func checkChoice(user string, number int) (cardName string, msgID string) {
-    cardName = ""
-    msgID = ""
-
-    // Connect to redis.
-    db, err := redis.DialURL(os.Getenv("REDIS_URL"))
-    if err != nil {
-        log.Printf("Could not connect to redis: '%s'", err)
-        return cardName, msgID
-    }
-    defer db.Close()
-
-    // Try to find a result.
-    choicesJson, err := redis.Bytes(db.Do("HGET", user, "choices"))
-    if err != nil {
-        log.Printf("Could not fetch choices from redis: '%s'", err)
-        return cardName, msgID
-    }
-
-    cardList := []CardChoice {}
-    err = json.Unmarshal(choicesJson, &cardList)
-
-    index := number - 1
-    if(index >= 0 && number < len(cardList)){
-        cardName = cardList[index].Name
-    }
-
-    // Fetch the ID of message asking for the choice to be made.
-    msgID, err = redis.String(db.Do("HGET", user, "msgID"))
-    if err != nil {
-        log.Printf("Could not fetch message ID from redis: '%s'", err)
-        return cardName, msgID
-    }
-
-    return cardName, msgID
-}
-
 func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, text string, walkerOnly bool) {
     cardList := []scryfall.Card{}
     var err error
@@ -235,19 +163,16 @@ func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, tex
 
     // Still here? Then we at least have results to process.
     numCards := len(cardList)
-    embed := discordgo.MessageEmbed{}
     if(numCards == 1){
-        embed = discord.EmbedCard(cardList[0])
-        session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
+        discord.RespondWithCard(cardList[0], session, msg.ChannelID)
     }else if(numCards > 1){
-        user := msg.Author.ID
-        embed = discord.EmbedChoice(cardList)
-        log.Printf("Embedded Message: %v", embed)
+        embed := discord.EmbedChoice(cardList)
+        log.Printf("Choice Message: %v", embed)
         embeddedMsg, err := session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
         if err != nil {
             log.Fatal("Error trying to send embedded message: '%s'", err)
         }
-        addChoiceToDB(user, cardList, embeddedMsg.ID)
+        choices.AddChoiceToDB(msg.Author.ID, cardList, embeddedMsg.ID)
     }
 }
 
@@ -284,8 +209,8 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
     } else if(matched) {
         log.Println("---")
         number, _ := strconv.Atoi(msg.Content)
-        log.Printf("Found a potential clarification from '%s' aka '%s': %d", msg.Author.ID, msg.Author.Username, number)
-        cardName, msgToDelete := checkChoice(msg.Author.ID, number)
+        log.Printf("Found a potential selection from '%s' aka '%s': %d", msg.Author.ID, msg.Author.Username, number)
+        cardName, msgToDelete := choices.CheckChoice(msg.Author.ID, number)
         if(cardName != ""){
             log.Printf("Found a choice: '%s'", cardName)
             discordSearch(session, msg, cardName, false)
