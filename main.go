@@ -7,6 +7,8 @@ import (
     "net/http"
     "os"
     "os/signal"
+    "regexp"
+    "strconv"
     "strings"
     "syscall"
 
@@ -15,8 +17,14 @@ import (
     slack "github.com/heroku/scrivener/slack"
     "github.com/bwmarrin/discordgo"
     "github.com/gin-gonic/gin"
+    "github.com/gomodule/redigo/redis"
     _ "github.com/heroku/x/hmetrics/onload"
 )
+
+type CardChoice struct {
+    Number int
+    Name string
+}
 
 func isLinkOnly(text string) (flag bool, newText string){
     LINK := "--link"
@@ -144,6 +152,73 @@ func slackCallback(c *gin.Context) {
     c.JSON(http.StatusOK, errorResponse)
 }
 
+func addChoiceToDB(user string, cardList []scryfall.Card, msgID string){
+    log.Printf("Adding a choice to the db for user '%s'", user)
+
+    // Connect to redis.
+    db, err := redis.DialURL(os.Getenv("REDIS_URL"))
+    if err != nil {
+        log.Printf("Could not connect to redis: '%s'", err)
+        return
+    }
+    defer db.Close()
+
+    // Make our JSON string to store.
+    choices := []CardChoice{}
+    for i, card := range cardList {
+        choice := CardChoice {
+            Name: card.Name,
+            Number: i + 1,
+        }
+        choices = append(choices, choice)
+    }
+    jsonString, _ := json.Marshal(choices)
+
+    _, err = db.Do("HMSET", user, "choices", jsonString, "msgID", msgID)
+    if err != nil {
+        log.Printf("Could not add choice to db: '%s'")
+    } else {
+        log.Printf("Choice added.")
+    }
+}
+
+func checkChoice(user string, number int) (cardName string, msgID string) {
+    cardName = ""
+    msgID = ""
+
+    // Connect to redis.
+    db, err := redis.DialURL(os.Getenv("REDIS_URL"))
+    if err != nil {
+        log.Printf("Could not connect to redis: '%s'", err)
+        return cardName, msgID
+    }
+    defer db.Close()
+
+    // Try to find a result.
+    choicesJson, err := redis.Bytes(db.Do("HGET", user, "choices"))
+    if err != nil {
+        log.Printf("Could not fetch choices from redis: '%s'", err)
+        return cardName, msgID
+    }
+
+    cardList := []CardChoice {}
+    err = json.Unmarshal(choicesJson, &cardList)
+
+    index := number - 1
+    if(index > 0 && number < len(cardList)){
+        cardName = cardList[index].Name
+    }
+
+    // Fetch the ID of message asking for the choice to be made.
+    msgID, err = redis.String(db.Do("HGET", user, "msgID"))
+    if err != nil {
+        log.Printf("Could not fetch message ID from redis: '%s'", err)
+        return cardName, msgID
+    }
+
+    return cardName, msgID
+}
+
 func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, text string, walkerOnly bool) {
     cardList := []scryfall.Card{}
     var err error
@@ -163,10 +238,13 @@ func discordSearch(session *discordgo.Session, msg *discordgo.MessageCreate, tex
     embed := discordgo.MessageEmbed{}
     if(numCards == 1){
         embed = discord.EmbedCard(cardList[0])
+        session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
     }else if(numCards > 1){
+        user := msg.Author.ID
         embed = discord.EmbedChoice(cardList)
+        embeddedMsg, _ := session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
+        addChoiceToDB(user, cardList, embeddedMsg.ID)
     }
-    session.ChannelMessageSendEmbed(msg.ChannelID, &embed)
 }
 
 func ready(s *discordgo.Session, event *discordgo.Ready){
@@ -179,7 +257,7 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
         return
     }
 
-    // Look for our trigger word.
+    // Look for our trigger word to start a search.
     trigger := "!card"
     if(strings.HasPrefix(msg.Content, trigger)){
         log.Println("---")
@@ -193,21 +271,47 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
         log.Printf("Search initiated: '%s'", searchText)
         discordSearch(session, msg, searchText, false)
     }
+
+    // Look for a line containing only a number, which is how we let people narrow down searches.
+    pattern := `^\d+$`
+    matched, err := regexp.MatchString(pattern, msg.Content)
+    if(err != nil){
+        log.Printf("Error attempting regular expression match: '%s'", err)
+    } else if(matched) {
+        log.Println("---")
+        number, _ := strconv.Atoi(msg.Content)
+        log.Printf("Found a potential clarification from '%s': %d", msg.Author.ID, number)
+        cardName, msgToDelete := checkChoice(msg.Author.ID, number)
+        if(cardName != ""){
+            log.Printf("Found a choice: '%s'", cardName)
+            discordSearch(session, msg, cardName, false)
+        }
+        if(msgToDelete != ""){
+            // Delete the original message that prompted the choice.
+            session.ChannelMessageDelete(msg.ChannelID, msgToDelete)
+            // Delete the message containing the choice, aka the current message.
+            err = session.ChannelMessageDelete(msg.ChannelID, msg.ID)
+            if err != nil {
+                log.Printf("Could not delete message containing selection: '%s'", err)
+            }
+        }
+    }
 }
 
 func main() {
+    // Connect to discord.
     token := os.Getenv("DISCORD_TOKEN")
     if token == "" {
         log.Fatal("$DISCORD_TOKEN must be set or we can't register with discord.")
         return
     }
 
-
     discord, err := discordgo.New("Bot " + token)
     if(err != nil){
         log.Printf("Error creating discord session: %s", err)
     }
 
+    // Set up our handlers.
     discord.AddHandler(ready)
     discord.AddHandler(messageCreate)
 

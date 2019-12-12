@@ -9,8 +9,10 @@ require (
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 // indirect
 	github.com/gin-gonic/gin v1.3.1-0.20180912132126-3f27866f8065
 	github.com/golang/protobuf v1.2.1-0.20180914203751-a47340a8e42c // indirect
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/heroku/x v0.0.0-20180719221634-1de401e1ba0e
 	github.com/json-iterator/go v1.1.6-0.20180914014843-2433035e5132 // indirect
+	github.com/lib/pq v1.2.0 // indirect
 	github.com/manucorporat/sse v0.0.0-20150604091100-c142f0f1baea // indirect
 	github.com/mattn/go-colorable v0.0.0-20150625154642-40e4aedc8fab // indirect
 	github.com/mattn/go-isatty v0.0.5-0.20180830101745-3fb116b82035 // indirect
