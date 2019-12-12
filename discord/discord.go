@@ -66,6 +66,13 @@ func getColor(identity []string) int {
 }
 
 func RespondWithCard(card scryfall.Card, session *discordgo.Session, channelID string) {
-    embed := EmbedCard(card)
-    session.ChannelMessageSendEmbed(channelID, &embed)
+	if(len(card.Faces) > 1){
+		for _, face := range card.Faces {
+			face.ColorIdentity = card.ColorIdentity
+			RespondWithCard(face, session, channelID)
+		}
+	} else {
+	    embed := EmbedCard(card)
+	    session.ChannelMessageSendEmbed(channelID, &embed)
+	}
 }
