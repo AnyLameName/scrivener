@@ -79,19 +79,35 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
         log.Println("---")
         number, _ := strconv.Atoi(msg.Content)
         log.Printf("Found a potential selection from '%s' aka '%s': %d", msg.Author.ID, msg.Author.Username, number)
+
+        // Look up their selection, regardless.
         cardName, msgToDelete := choices.CheckChoice(msg.Author.ID, number)
-        if(cardName != ""){
-            log.Printf("Found a choice: '%s'", cardName)
-            discordSearch(session, msg, cardName, false)
+
+        // Check for cancel.
+        if(number == 0){
             choices.RemoveChoiceFromDB(msg.Author.ID)
-        }
-        if(msgToDelete != ""){
             // Delete the original message that prompted the choice.
             session.ChannelMessageDelete(msg.ChannelID, msgToDelete)
             // Delete the message containing the choice, aka the current message.
             err = session.ChannelMessageDelete(msg.ChannelID, msg.ID)
             if err != nil {
                 log.Printf("Could not delete message containing selection: '%s'", err)
+            }
+        }
+
+        // Deal with an actual choice.
+        if(cardName != ""){
+            log.Printf("Found a choice: '%s'", cardName)
+            discordSearch(session, msg, cardName, false)
+            choices.RemoveChoiceFromDB(msg.Author.ID)
+            if(msgToDelete != ""){
+                // Delete the original message that prompted the choice.
+                session.ChannelMessageDelete(msg.ChannelID, msgToDelete)
+                // Delete the message containing the choice, aka the current message.
+                err = session.ChannelMessageDelete(msg.ChannelID, msg.ID)
+                if err != nil {
+                    log.Printf("Could not delete message containing selection: '%s'", err)
+                }
             }
         }
     }

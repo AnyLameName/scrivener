@@ -24,7 +24,7 @@ func EmbedCard(card scryfall.Card) discordgo.MessageEmbed {
 }
 
 func EmbedChoice(cardList []scryfall.Card) discordgo.MessageEmbed {
-	prompt := "Please choose from the list below. (Type the number)"
+	prompt := "Please choose from the list below. (Type the number to choose, or 0 to cancel.)"
 	for index, card := range cardList {
 		prompt = prompt + fmt.Sprintf("\n**[%d]** - %s", index + 1, card.Name)
 	}
