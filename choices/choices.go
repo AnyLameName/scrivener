@@ -14,7 +14,7 @@ type CardChoice struct {
     Name string
 }
 
-func AddChoiceToDB(user string, cardList []scryfall.Card, msgID string){
+func AddChoiceToDB(user string, cardList []scryfall.Card, msgID string) {
     log.Printf("Adding a choice to the db for user '%s'", user)
 
     // Connect to redis.
@@ -37,6 +37,23 @@ func AddChoiceToDB(user string, cardList []scryfall.Card, msgID string){
     jsonString, _ := json.Marshal(choices)
 
     _, err = db.Do("HMSET", user, "choices", jsonString, "msgID", msgID)
+    if err != nil {
+        log.Printf("Could not add choice to db: '%s'", err)
+    }
+}
+
+func RemoveChoiceFromDB(user string) {
+    log.Printf("Adding a choice to the db for user '%s'", user)
+
+    // Connect to redis.
+    db, err := redis.DialURL(os.Getenv("REDIS_URL"))
+    if err != nil {
+        log.Printf("Could not connect to redis: '%s'", err)
+        return
+    }
+    defer db.Close()
+
+    _, err = db.Do("HDEL", user, "choices")
     if err != nil {
         log.Printf("Could not add choice to db: '%s'", err)
     }

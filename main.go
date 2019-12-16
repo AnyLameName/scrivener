@@ -83,6 +83,7 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
         if(cardName != ""){
             log.Printf("Found a choice: '%s'", cardName)
             discordSearch(session, msg, cardName, false)
+            choices.RemoveChoiceFromDB(msg.Author.ID)
         }
         if(msgToDelete != ""){
             // Delete the original message that prompted the choice.
