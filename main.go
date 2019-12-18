@@ -70,6 +70,15 @@ func messageCreate(session *discordgo.Session, msg *discordgo.MessageCreate){
         discordSearch(session, msg, searchText, false)
     }
 
+    // Look for mid-sentence searches, using [[card]] for the trigger.
+    reg := regexp.MustCompile(`(\[\[.*?\]\])|(\{\{.*?\}\})`)
+    for _, match := range reg.FindAllString(msg.Content, -1) {
+        searchText := match[2:len(match) - 2]
+        walkerOnly := match[0] == '{'
+        log.Printf("Search initiated by '%s': '%s'", msg.Author.Username, searchText)
+        discordSearch(session, msg, searchText, walkerOnly)
+    }
+
     // Look for a line containing only a number, which is how we let people narrow down searches.
     pattern := `^\d+$`
     matched, err := regexp.MatchString(pattern, msg.Content)
